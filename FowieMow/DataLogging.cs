@@ -17,10 +17,14 @@ namespace FowieMow
     {
         SharpKml.Dom.GX.Track GPSTrack = new SharpKml.Dom.GX.Track();
         string GPSFilePath;
+        Kml myKml;
 
         public DataLogging(string GPSfilePath)
         {
             GPSFilePath = GPSfilePath;
+            myKml = new Kml();
+            myKml.AddNamespacePrefix(KmlNamespaces.GX22Prefix, KmlNamespaces.GX22Namespace);
+            myKml.Feature = new Document();
         }
 
         ~DataLogging()
@@ -30,10 +34,8 @@ namespace FowieMow
 
         public void SaveToKML()
         {
-            //var kml = new Kml();
-            //kml.AddNamespacePrefix(KmlNamespaces.GX22Prefix, KmlNamespaces.GX22Namespace);
-            //kml.Feature = GPSTrack;
-            KmlFile kmlFile = KmlFile.Create(GPSTrack, true);
+            KmlFile kmlFile = KmlFile.Create(myKml, true);
+            
             using (FileStream stream = File.OpenWrite(GPSFilePath + Path.DirectorySeparatorChar + DateTime.Now.ToFileTimeUtc().ToString() + ".kml"))
             {
                 kmlFile.Save(stream);
@@ -42,7 +44,12 @@ namespace FowieMow
 
         public void WriteGPSCoordinate(double lat, double lon)
         {
-            GPSTrack.AddCoordinate(new Vector(lat, lon));
+            Point newPoint = new Point();
+            newPoint.Coordinate = new Vector(lat, lon);
+            Placemark placemark = new Placemark();
+            placemark.Geometry = newPoint;
+            ((Document)myKml.Feature).AddFeature(placemark);
+            //GPSTrack.AddCoordinate(new Vector(lat, lon));
         }
     }
 }
