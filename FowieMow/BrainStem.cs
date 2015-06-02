@@ -232,7 +232,15 @@ namespace FowieMow
                             String LonDeg = parts[5].Substring(0, 3);
                             String LonMins = parts[5].Substring(3);
                             Latitude = Convert.ToDouble(LatDeg) + (Convert.ToDouble(LatMins) / 60.0);
+                            if(parts[4].Equals("S"))
+                            {
+                                Latitude *= -1;
+                            }
                             Longitude = Convert.ToDouble(LonDeg) + (Convert.ToDouble(LonMins) / 60.0);
+                            if(parts[6].Equals("W"))
+                            {
+                                Longitude *= -1;
+                            }
                             DateTime attempt = new DateTime();
                             bool success = DateTime.TryParseExact(parts[1] + " " + parts[9], "HHmmss.000 ddMMyy", CultureInfo.CurrentCulture,
                                 DateTimeStyles.AllowInnerWhite | DateTimeStyles.AssumeUniversal, out attempt);
@@ -269,12 +277,18 @@ namespace FowieMow
                     if (CommandQueue.Count > 0)
                     {
                         Console.WriteLine("Issuing a command:");
-                        TransmitCommand(CommandQueue.Dequeue());
+                        if(TransmitCommand(CommandQueue.Dequeue()))
+                        {
+                            Console.WriteLine("Command received successfully");
+                        }
                     }
                     else
                     {
                         Console.WriteLine("Sending NOP");
-                        TransmitCommand("99");
+                        if(TransmitCommand("99"))
+                        {
+                            Console.WriteLine("Command received successfully");
+                        }
                     }
                     CommandQueueMutex.ReleaseMutex();
                 }

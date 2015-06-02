@@ -16,6 +16,7 @@ namespace FowieMow
     class DataLogging
     {
         SharpKml.Dom.GX.Track GPSTrack = new SharpKml.Dom.GX.Track();
+        
         string GPSFilePath;
         Kml myKml;
 
@@ -34,6 +35,11 @@ namespace FowieMow
 
         public void SaveToKML()
         {
+            Placemark pm = new Placemark();
+            pm.Name = "FowieMow Path";
+            pm.Geometry = GPSTrack;
+            ((Document)myKml.Feature).AddFeature(pm);
+            
             KmlFile kmlFile = KmlFile.Create(myKml, true);
             
             using (FileStream stream = File.OpenWrite(GPSFilePath + Path.DirectorySeparatorChar + DateTime.Now.ToFileTimeUtc().ToString() + ".kml"))
@@ -44,12 +50,12 @@ namespace FowieMow
 
         public void WriteGPSCoordinate(double lat, double lon)
         {
-            Point newPoint = new Point();
+            /*Point newPoint = new Point();
             newPoint.Coordinate = new Vector(lat, lon);
             Placemark placemark = new Placemark();
             placemark.Geometry = newPoint;
-            ((Document)myKml.Feature).AddFeature(placemark);
-            //GPSTrack.AddCoordinate(new Vector(lat, lon));
+            ((Document)myKml.Feature).AddFeature(placemark);*/
+            GPSTrack.AddCoordinate(new Vector(lat, lon));
         }
     }
 }
