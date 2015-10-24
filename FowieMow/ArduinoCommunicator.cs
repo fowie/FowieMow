@@ -15,36 +15,69 @@ namespace FowieMow
     /// That is what the Arduino is for.
     /// 
     /// </summary>
-    class BrainStem
+    static class ArduinoCommunicator
     {
-        SerialPort Arduino;
-        Thread StemThread;
+        private static SerialPort Arduino;
+        private static Thread ArduinoThread;
+        private static Mutex GeneralThreadMutex = new Mutex();
         private static Mutex GPSDataMutex = new Mutex();
         private static Mutex BatteryDataMutex = new Mutex();
         private static Mutex StatusDataMutex = new Mutex();
         private static Mutex CommandQueueMutex = new Mutex();
-        private Boolean ThreadRunning = false;
+
+        //!!!This value should only be accessed after obtaining the GeneralThreadMutex!!!
+        private static Boolean ThreadRunning = false;
 
         //!!!These values should only be accessed after obtaining the GPSDataMutex!!!
-        double Latitude;
-        double Longitude;
-        DateTime UTC;
-        double Speed;
-        double Course;
+        private static double Latitude;
+        private static double Longitude;
+        private static DateTime UTC;
+        private static double Speed;
+        private static double Course;
 
         //!!!!Only access after obtaining BatteryDataMutex
-        double BatteryVoltage;
+        private static double BatteryVoltage;
 
         //!!!!Only access after obtaining StatusDataMutex
-        string BrainStemLatestStatus = "";
+        private static string BrainStemLatestStatus = "";
 
         //!!!!Only access after obtaining CommandQueueMutex
-        Queue<string> CommandQueue = new Queue<string>();
+        private static Queue<string> CommandQueue = new Queue<string>();
 
-        public BrainStem()
+        static ArduinoCommunicator()
         {
-            // Initialize the connection
-            Arduino = new SerialPort("COM3", 9600, Parity.None, 8, StopBits.One);
+            Connect();
+            Console.WriteLine("Starting Arduino communication thread");
+            StartThread();
+        }
+
+        public static bool Start()
+        {
+            if (!Arduino.IsOpen)
+            {
+                Connect();
+                return false;
+            }
+            if (!ThreadRunning)
+            {
+                StartThread();
+                return false;
+            }
+            return true;
+        }
+
+        public static void Stop()
+        {
+            GeneralThreadMutex.WaitOne();
+            ThreadRunning = false;
+            GeneralThreadMutex.ReleaseMutex();
+
+            ArduinoThread.Join();
+        }
+
+        private static void Connect()
+        {
+            Arduino = new SerialPort("COM4", 9600, Parity.None, 8, StopBits.One);
             try
             {
                 Arduino.Open();
@@ -62,68 +95,57 @@ namespace FowieMow
                 Console.WriteLine(e.Message);
                 return;
             }
-
-            Console.WriteLine("Starting Arduino communication thread");
-            ThreadRunning = true;
-            StemThread = new Thread(new ParameterizedThreadStart(BrainStemThread));
-            StemThread.Start(Arduino);
         }
 
-        ~BrainStem()
+        private static void StartThread()
         {
-            ThreadRunning = false;
-
-            StemThread.Join();
+            ArduinoThread = new Thread(new ParameterizedThreadStart(ArduinoCommThread));
+            ArduinoThread.Start(Arduino);
         }
 
-        public void Stop()
-        {
-            ThreadRunning = false;
-        }
-
-        public double GetLatitude()
+        public static double GetLatitude()
         {
             GPSDataMutex.WaitOne();
             double retVal = Latitude;
             GPSDataMutex.ReleaseMutex();
             return retVal;
         }
-        public double GetLongitude()
+        public static double GetLongitude()
         {
             GPSDataMutex.WaitOne();
             double retVal = Longitude;
             GPSDataMutex.ReleaseMutex();
             return retVal;
         }
-        public double GetSpeed()
+        public static double GetSpeed()
         {
             GPSDataMutex.WaitOne();
             double retVal = Speed;
             GPSDataMutex.ReleaseMutex();
             return retVal;
         }
-        public double GetCourse()
+        public static double GetCourse()
         {
             GPSDataMutex.WaitOne();
             double retVal = Course;
             GPSDataMutex.ReleaseMutex();
             return retVal;
         }
-        public double GetBatteryVoltage()
+        public static double GetBatteryVoltage()
         {
             BatteryDataMutex.WaitOne();
             double retVal = BatteryVoltage;
             BatteryDataMutex.ReleaseMutex();
             return retVal;
         }
-        public string GetStatus()
+        public static string GetStatus()
         {
             StatusDataMutex.WaitOne();
             string retVal = BrainStemLatestStatus;
             StatusDataMutex.ReleaseMutex();
             return retVal;
         }
-        public int IssueCommand(string command)
+        public static int IssueCommand(string command)
         {
             CommandQueueMutex.WaitOne();
             CommandQueue.Enqueue(command);
@@ -132,8 +154,9 @@ namespace FowieMow
             return len;
         }
 
-        void BrainStemThread(object ard)
+        static void ArduinoCommThread(object ard)
         {
+
             SerialPort Arduino = (SerialPort)ard;
 
             // Main threadloop
@@ -166,7 +189,7 @@ namespace FowieMow
             }
         }
 
-        private Boolean TransmitCommand(string command)
+        private static Boolean TransmitCommand(string command)
         {
             int timeouts = 0;
 
@@ -193,7 +216,7 @@ namespace FowieMow
             return false;
         }
 
-        void ProcessData(string data)
+        private static void ProcessData(string data)
         {
             Console.WriteLine("Got data: " + data);
             // parse data

@@ -11,7 +11,7 @@ namespace FowieMow
         static void Main(string[] args)
         {
             Console.WriteLine("Initializing Brainstem...");
-            BrainStem Stem = new BrainStem();
+            ArduinoCommunicator.Start();
             DataLogging Logger = new DataLogging("C:\\Users\\Fowie\\OneDrive\\Documents\\Side Projects\\FowieMow\\Data");
             Console.WriteLine("Done!");
 
@@ -33,13 +33,13 @@ namespace FowieMow
                 else if(pressedKey == ConsoleKey.C)
                 {
                     Console.WriteLine("Sending test 'Move' command");
-                    Stem.IssueCommand("1,10,10");
+                    ArduinoCommunicator.IssueCommand("1,10,10");
                 }
 
-                CurrentGPS[0] = Stem.GetLatitude();
-                CurrentGPS[1] = Stem.GetLongitude();
-                CurrentGPS[2] = Stem.GetSpeed();
-                CurrentGPS[3] = Stem.GetCourse();
+                CurrentGPS[0] = ArduinoCommunicator.GetLatitude();
+                CurrentGPS[1] = ArduinoCommunicator.GetLongitude();
+                CurrentGPS[2] = ArduinoCommunicator.GetSpeed();
+                CurrentGPS[3] = ArduinoCommunicator.GetCourse();
 
                 if(CurrentGPS[0] != PreviousGPS[0] || 
                     CurrentGPS[1] != PreviousGPS[1] ||
@@ -59,7 +59,7 @@ namespace FowieMow
             }
 
             Console.WriteLine("ENDING");
-            Stem.Stop();
+            ArduinoCommunicator.Stop();
         }
     }
 }
